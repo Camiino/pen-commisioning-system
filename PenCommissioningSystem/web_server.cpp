@@ -4,9 +4,6 @@
 WebServer server(80);
 DNSServer dnsServer;
 
-// eeprom setup
-#define EEPROM_SIZE 256
-
 // Base64 Icons for pen components
 const String shaftIcon = "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiIHN0YW5kYWxvbmU9Im5vIj8+CjwhLS0gQ3JlYXRlZCB3aXRoIElua3NjYXBlIChodHRwOi8vd3d3Lmlua3NjYXBlLm9yZy8pIC0tPgoKPHN2ZwogICB3aWR0aD0iMjEuOTY2ODUiCiAgIGhlaWdodD0iMy4yNDg2MTg2IgogICB2aWV3Qm94PSIwIDAgMjEuOTY2ODUxIDMuMjQ4NjE4NiIKICAgdmVyc2lvbj0iMS4xIgogICBpZD0ic3ZnMSIKICAgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIgogICB4bWxuczpzdmc9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8ZGVmcwogICAgIGlkPSJkZWZzMSIgLz4KICA8ZwogICAgIGlkPSJsYXllcjEiCiAgICAgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoLTUuMDE2NTc0NiwtMTIuODYxODc5KSI+CiAgICA8cGF0aAogICAgICAgc3R5bGU9ImZpbGw6IzAwMDAwMCIKICAgICAgIGQ9Ik0gMjMuOTc3ODk5LDEzLjM0ODA2OCAyMy45MzM3MDEsMTIuOTk0NDc3IDkuNjc5NTU4LDEyLjkyODE3NyA1LjA4Mjg3MjksMTQuMzg2NzQgOS42MzUzNTkxLDE2IDIzLjk3NzksMTUuOTc3OTAxIGwgLTFlLTYsLTAuMzk3NzkgMi44OTUwMjksMC4wMjIxIDAuMDIyMSwtMi4yNTQxNDQgYyAtMS4yNDk4NzgsLTAuMDAzMyAtMS44OTcxMzEsMC4wMTgyNyAtMi45MTcxMjcsMmUtNiB6IgogICAgICAgaWQ9InBhdGgyIiAvPgogICAgPHBhdGgKICAgICAgIHN0eWxlPSJmaWxsOiMwMDAwMDAiCiAgICAgICBkPSJtIDIzLjk3Nzg5OSwxMy4zNDgwNjggLTAuMDQ0MiwtMC4zNTM1OTEgLTE0LjI1NDE0MywtMC4wNjYzIC00LjA2NjI5ODQsMS41NjkwNiBMIDkuNjM1MzU5MSwxNiAyMy45Nzc5LDE1Ljk3NzkwMSBsIC0xZS02LC0wLjM5Nzc5IDIuODk1MDI5LDAuMDIyMSAwLjAyMjEsLTIuMjU0MTQ0IGMgLTEuMjQ5ODc4LC0wLjAwMzMgLTEuODk3MTMxLDAuMDE4MjcgLTIuOTE3MTI3LDJlLTYgeiIKICAgICAgIGlkPSJwYXRoMyIgLz4KICA8L2c+Cjwvc3ZnPgo=";
 // placeholder icons
@@ -66,36 +63,63 @@ void loadStockFromEEPROM() {
   logInfo("Loaded stock quantities from EEPROM");
 }
 
-// Log structure
+// structure for saving logs
 struct LogEntry {
   String timestamp;
   String component;
   int quantity;
-  String action; // "dispensed" or "added"
+  String action;
+};
+LogEntry logEntries[50];
+int logCount;
+
+// structure for EEPROM saving of logs (compact)
+struct EEPROMLogEntry {
+  uint32_t timestamp;  // Millis seit Start
+  char component[10]; // Max. 9 Zeichen + Nullterminator
+  int quantity;
+  char action[10];    // "dispensed" oder "added"
 };
 
-LogEntry logEntries[50]; // Array to store log entries
-int logCount = 0;
+void saveLogsToEEPROM() {
+  // save only the last MAX_LOG_ENTRIES values
+  int startIndex = max(0, logCount - MAX_LOG_ENTRIES);
+  for (int i = startIndex; i < logCount; i++) {
+    int logIndex = i - startIndex;
+    int address = LOG_START_ADDRESS + logIndex * sizeof(EEPROMLogEntry);
 
-void initWebServer() {
-  // load stock from EEPROM
-  loadStockFromEEPROM();
+    EEPROMLogEntry entry;
+    entry.timestamp = logEntries[i].timestamp.substring(0, logEntries[i].timestamp.indexOf('s')).toInt();  // extract millis
+    strncpy(entry.component, logEntries[i].component.c_str(), 9);
+    entry.component[9] = '\0';  // zero terminator
+    entry.quantity = logEntries[i].quantity;
+    strncpy(entry.action, logEntries[i].action.c_str(), 9);
+    entry.action[9] = '\0';     // zero terminator
 
-  // standard pages
-  server.on("/", handleRoot);
-  server.on("/order", handleOrder);
-  server.on("/admin", handleAdmin);
-  server.on("/update-stock", handleUpdateStock);
-  server.onNotFound(handleNotFound);
-
-  server.begin();
-  logInfo("Webserver started on port 80");
+    EEPROM.put(address, entry);
+  }
+  EEPROM.commit();
+  logInfo("Saved " + String(min(logCount, MAX_LOG_ENTRIES)) + " logs to EEPROM");
 }
 
-void handleWebServer() {
-  server.handleClient();
-  delay(2);
-  if (!isWiFiConnected()) dnsServer.processNextRequest();
+void loadLogsFromEEPROM() {
+  logCount = 0;  // reset
+
+  for (int i = 0; i < MAX_LOG_ENTRIES; i++) {
+    int address = LOG_START_ADDRESS + i * sizeof(EEPROMLogEntry);
+    EEPROMLogEntry entry;
+    EEPROM.get(address, entry);
+
+    // check if entry is valid (timestamp != 0)
+    if (entry.timestamp > 0 && entry.timestamp < 0xFFFFFFFF) {
+      logEntries[logCount].timestamp = String(entry.timestamp) + "s";
+      logEntries[logCount].component = String(entry.component);
+      logEntries[logCount].quantity = entry.quantity;
+      logEntries[logCount].action = String(entry.action);
+      logCount++;
+    }
+  }
+  logInfo("Loaded " + String(logCount) + " log entries from EEPROM");
 }
 
 void addLogEntry(String component, int quantity, String action) {
@@ -116,12 +140,35 @@ void addLogEntry(String component, int quantity, String action) {
     logEntries[49].quantity = quantity;
     logEntries[49].action = action;
   }
+  saveLogsToEEPROM();
 }
 
 String getCurrentTimestamp() {
   // Simple timestamp for demo purposes
   // In a real application, you would use an RTC module
   return String(millis() / 1000) + "s";
+}
+
+void initWebServer() {
+  // load from EEPROM
+  loadStockFromEEPROM();
+  loadLogsFromEEPROM();
+
+  // standard pages
+  server.on("/", handleRoot);
+  server.on("/order", handleOrder);
+  server.on("/admin", handleAdmin);
+  server.on("/update-stock", handleUpdateStock);
+  server.onNotFound(handleNotFound);
+
+  server.begin();
+  logInfo("Webserver started on port 80");
+}
+
+void handleWebServer() {
+  server.handleClient();
+  delay(2);
+  if (!isWiFiConnected()) dnsServer.processNextRequest();
 }
 
 void handleRoot() {
