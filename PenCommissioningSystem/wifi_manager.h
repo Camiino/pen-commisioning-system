@@ -7,4 +7,3 @@
 void initWiFi();
 void handleWiFi();
 bool isWiFiConnected();
-String getWiFiStatus();
