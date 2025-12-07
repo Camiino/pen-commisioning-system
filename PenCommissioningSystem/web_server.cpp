@@ -1,34 +1,23 @@
-// WiFi Manager
-#include <WiFi.h>
-#include <WiFiManager.h>
-#include <IPAddress.h>
-#include <strings_en.h>
-#include <wm_consts_en.h>
-#include <wm_strings_en.h>
-#include <wm_strings_es.h>
+#include "web_server.h"
 
-// webserver
-#include <DNSServer.h>
-#include <WebServer.h>
-
-// persistent memory
-#include <EEPROM.h>
-
-//EEPROM configuration
-#define EEPROM_SIZE 256
-
-// webserver configuration
+// web server and dns
 WebServer server(80);
 DNSServer dnsServer;
 
-// define icons using Base64 encoding
-const String shaftIcon = "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiIHN0YW5kYWxvbmU9Im5vIj8+CjwhLS0gQ3JlYXRlZCB3aXRoIElua3NjYXBlIChodHRwOi8vd3d3Lmlua3NjYXBlLm9yZy8pIC0tPgoKPHN2ZwogICB3aWR0aD0iMjEuOTY2ODUiCiAgIGhlaWdodD0iMy4yNDg2MTg2IgogICB2aWV3Qm94PSIwIDAgMjEuOTY2ODUxIDMuMjQ4NjE4NiIKICAgdmVyc2lvbj0iMS4xIgogICBpZD0ic3ZnMSIKICAgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIgogICB4bWxuczpzdmc9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8ZGVmcwogICAgIGlkPSJkZWZzMSIgLz4KICA8ZwogICAgIGlkPSJsYXllcjEiCiAgICAgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoLTUuMDE2NTc0NiwtMTIuODYxODc5KSI+CiAgICA8cGF0aAogICAgICAgc3R5bGU9ImZpbGw6IzAwMDAwMCIKICAgICAgIGQ9Ik0gMjMuOTc3ODk5LDEzLjM0ODA2OCAyMy45MzM3MDEsMTIuOTk0NDc3IDkuNjc5NTU4LDEyLjkyODE3NyA1LjA4Mjg3MjksMTQuMzg2NzQgOS42MzUzNTkxLDE2IDIzLjk3NzksMTUuOTc3OTAxIGwgLTFlLTYsLTAuMzk3NzkgMi44OTUwMjksMC4wMjIxIDAuMDIyMSwtMi4yNTQxNDQgYyAtMS4yNDk4NzgsLTAuMDAzMyAtMS44OTcxMzEsMC4wMTgyNyAtMi45MTcxMjcsMmUtNiB6IgogICAgICAgaWQ9InBhdGgyIiAvPgogICAgPHBhdGgKICAgICAgIHN0eWxlPSJmaWxsOiMwMDAwMDAiCiAgICAgICBkPSJtIDIzLjk3Nzg5OSwxMy4zNDgwNjggLTAuMDQ0MiwtMC4zNTM1OTEgLTE0LjI1NDE0MywtMC4wNjYzIC00LjA2NjI5ODQsMS41NjkwNiBMIDkuNjM1MzU5MSwxNiAyMy45Nzc5LDE1Ljk3NzkwMSBsIC0xZS02LC0wLjM5Nzc5IDIuODk1MDI5LDAuMDIyMSAwLjAyMjEsLTIuMjU0MTQ0IGMgLTEuMjQ5ODc4LC0wLjAwMzMgLTEuODk3MTMxLDAuMDE4MjcgLTIuOTE3MTI3LDJlLTYgeiIKICAgICAgIGlkPSJwYXRoMyIgLz4KICA8L2c+Cjwvc3ZnPgo=";
+// eeprom setup
+#define EEPROM_SIZE 256
 
-// Placeholder for other component icons (add more as needed)
+// Base64 Icons for pen components
+const String shaftIcon = "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiIHN0YW5kYWxvbmU9Im5vIj8+CjwhLS0gQ3JlYXRlZCB3aXRoIElua3NjYXBlIChodHRwOi8vd3d3Lmlua3NjYXBlLm9yZy8pIC0tPgoKPHN2ZwogICB3aWR0aD0iMjEuOTY2ODUiCiAgIGhlaWdodD0iMy4yNDg2MTg2IgogICB2aWV3Qm94PSIwIDAgMjEuOTY2ODUxIDMuMjQ4NjE4NiIKICAgdmVyc2lvbj0iMS4xIgogICBpZD0ic3ZnMSIKICAgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIgogICB4bWxuczpzdmc9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8ZGVmcwogICAgIGlkPSJkZWZzMSIgLz4KICA8ZwogICAgIGlkPSJsYXllcjEiCiAgICAgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoLTUuMDE2NTc0NiwtMTIuODYxODc5KSI+CiAgICA8cGF0aAogICAgICAgc3R5bGU9ImZpbGw6IzAwMDAwMCIKICAgICAgIGQ9Ik0gMjMuOTc3ODk5LDEzLjM0ODA2OCAyMy45MzM3MDEsMTIuOTk0NDc3IDkuNjc5NTU4LDEyLjkyODE3NyA1LjA4Mjg3MjksMTQuMzg2NzQgOS42MzUzNTkxLDE2IDIzLjk3NzksMTUuOTc3OTAxIGwgLTFlLTYsLTAuMzk3NzkgMi44OTUwMjksMC4wMjIxIDAuMDIyMSwtMi4yNTQxNDQgYyAtMS4yNDk4NzgsLTAuMDAzMyAtMS44OTcxMzEsMC4wMTgyNyAtMi45MTcxMjcsMmUtNiB6IgogICAgICAgaWQ9InBhdGgyIiAvPgogICAgPHBhdGgKICAgICAgIHN0eWxlPSJmaWxsOiMwMDAwMDAiCiAgICAgICBkPSJtIDIzLjk3Nzg5OSwxMy4zNDgwNjggLTAuMDQ0MiwtMC4zNTM1OTEgLTE0LjI1NDE0MywtMC4wNjYzIC00LjA2NjI5ODQsMS41NjkwNiBMIDkuNjM1MzU5MSwxNiAyMy45Nzc5LDE1Ljk3NzkwMSBsIC0xZS02LC0wLjM5Nzc5IDIuODk1MDI5LDAuMDIyMSAwLjAyMjEsLTIuMjU0MTQ0IGMgLTEuMjQ5ODc4LC0wLjAwMzMgLTEuODk3MTMxLDAuMDE4MjcgLTIuOTE3MTI3LDJlLTYgeiIKICAgICAgIGlkPSJwYXRoMyIgLz4KICA8L2c+Cjwvc3ZnPgo=";
+// placeholder icons
 const String mineIcon = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlnaHQ9IjQwMCIgdmlld0JveD0iMCAwIDggMCA4MDAiIHZpZXdCb3g9IjAgMCA4MCA4MDAiIGVuYWJsZT0icmVzaXplIj48cGF0aCBkPSJNMTQwMCAwMDUwMDAwMDAwMDAwMDAwMDAgZmlsbD0iIzAwMDAwMCIvPjwvc3ZnPg==";
 const String clipIcon = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlnaHQ9IjQwMCIgdmlld0JveD0iMCAwIDggMCA4MDAiIHZpZXdCb3g9IjAgMCA4MCA4MDAiIGVuYWJsZT0icmVzaXplIj48cGF0aCBkPSJNMTQwMCAwMDUwMDAwMDAwMDAwMDAwMDAgZmlsbD0iI2ZmMDAwMCIvPjwvc3ZnPg==";
 const String springIcon = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlnaHQ9IjQwMCIgdmlld0JveD0iMCAwIDggMCA4MDAiIHZpZXdCb3g9IjAgMCA4MCA4MDAiIGVuYWJsZT0icmVzaXplIj48cGF0aCBkPSJNMTQwMCAwMDUwMDAwMDAwMDAwMDAwMDAgZmlsbD0iIzAwMDAwMCIvPjwvc3ZnPg==";
+const String buttonIcon = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlnaHQ9IjQwMCIgdmlld0JveD0iMCAwIDggMCA4MDAiIHZpZXdCb3g9IjAgMCA4MCA4MDAiIGVuYWJsZT0icmVzaXplIj48cGF0aCBkPSJNMTQwMCAwMDUwMDAwMDAwMDAwMDAwMDAgZmlsbD0iIzAwMDAwMCIvPjwvc3ZnPg==";
+const String tipIcon = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlnaHQ9IjQwMCIgdmlld0JveD0iMCAwIDggMCA4MDAiIHZpZXdCb3g9IjAgMCA4MCA4MDAiIGVuYWJsZT0icmVzaXplIj48cGF0aCBkPSJNMTQwMCAwMDUwMDAwMDAwMDAwMDAwMDAgZmlsbD0iIzAwMDAwMCIvPjwvc3ZnPg==";
+const String ringIcon = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlnaHQ9IjQwMCIgdmlld0JveD0iMCAwIDggMCA4MDAiIHZpZXdCb3g9IjAgMCA4MCA4MDAiIGVuYWJsZT0icmVzaXplIj48cGF0aCBkPSJNMTQwMCAwMDUwMDAwMDAwMDAwMDAwMDAgZmlsbD0iIzAwMDAwMCIvPjwvc3ZnPg==";
 
+// define struct for saving stock
 struct Component {
   String name;
   String icon;
@@ -38,13 +27,38 @@ struct Component {
 
 Component components[7] = {
   {"Shaft", "0", 100, 20},  // Using index 0 to reference shaftIcon
-  {"Mine", "1", 150, 15},   // Using index 1 to reference mineIcon
-  {"Clip", "2", 200, 10},   // Using index 2 to reference clipIcon
-  {"Spring", "3", 80, 5},   // Using index 3 to reference springIcon
-  {"Button", "", 120, 10},  // No icon yet
-  {"Tip", "", 90, 5},       // No icon yet
-  {"Plastic Sleeve", "", 250, 30}  // No icon yet
+  {"Mine", "1", 150, 15},
+  {"Clip", "2", 200, 10},
+  {"Spring", "3", 80, 5},
+  {"Button", "", 120, 10},
+  {"Tip", "", 90, 5},
+  {"Ring", "", 250, 30}
 };
+
+void initEEPROM() {
+  if (!EEPROM.begin(EEPROM_SIZE)) {
+    logError("EEPROM initialisation failed!");
+  }
+}
+
+void saveStockToEEPROM() {
+  for (int i = 0; i < 7; i++) {
+    int address = i * sizeof(int);
+    EEPROM.writeInt(address, components[i].stock);
+  }
+  EEPROM.commit();
+}
+
+void loadStockFromEEPROM() {
+  for (int i = 0; i < 7; i++) {
+    int address = i * sizeof(int);
+    int value;
+    EEPROM.get(address, value);
+    if (value > 0) {  // Only update if there's a valid value
+      components[i].stock = value;
+    }
+  }
+}
 
 // Log structure
 struct LogEntry {
@@ -57,60 +71,26 @@ struct LogEntry {
 LogEntry logEntries[50]; // Array to store log entries
 int logCount = 0;
 
-void setup() {
-  // set up serial interface
-  Serial.begin(115200);
-  delay(1000);
-
-  // Initialize EEPROM
-  if (!EEPROM.begin(EEPROM_SIZE)) {
-    Serial.println("Failed to initialize EEPROM");
-    delay(1000);
-  }
-
-  // load stock from EEPROM
-  loadStockFromEEPROM();
-
-  // connect to wifi
-  WiFiManager wifiManager;
-  IPAddress localIP(192,168, 1, 1);  // set local AP IP
-  IPAddress gateway(192, 168, 1, 0);
-  IPAddress subnet(255, 255, 255, 0);
-  wifiManager.setAPStaticIPConfig(localIP, gateway, subnet);
-
-  // uncomment for testing
-  wifiManager.resetSettings();  // wipe saved credentials
-
-  // create AP named PenComissioningAP" if it can't connect
-  wifiManager.autoConnect("Pen Comissioning Machine AP");
-
-  // optional: customize
-  wifiManager.setAPCallback([](WiFiManager* wifiManager) {
-    Serial.println("Entered AP mode - connect to configure WiFi");
-  });
-
-  Serial.println("Connected to WiFi!");
-  Serial.println("IP: ");
-  Serial.println(WiFi.localIP());
-
-  // start webserver
+void initWebServer() {
+  // standard pages
   server.on("/", handleRoot);
-  server.on("/order", HTTP_POST, handleOrder);
+  server.on("/order", handleOrder);
   server.on("/admin", handleAdmin);
-  server.on("/update-stock", HTTP_POST, handleUpdateStock);
+  server.on("/update-stock", handleUpdateStock);
   server.onNotFound(handleNotFound);
 
   server.begin();
-  Serial.println("HTTP server started");
+  logInfo("Webserver started on port 80");
 }
 
-void loop() {
+void handleWebServer() {
   server.handleClient();
   delay(2);
+  if (!isWiFiConnected()) dnsServer.processNextRequest();
 }
 
 void handleRoot() {
-  // Array of all icons for easy reference
+    // Array of all icons for easy reference
   const String icons[] = {shaftIcon, mineIcon, clipIcon, springIcon};
 
   String html = "<!DOCTYPE html><html><head><meta charset='UTF-8'><title>Pen Commissioning System</title>";
@@ -207,7 +187,7 @@ void handleRoot() {
 }
 
 void handleOrder() {
-  // Array of all icons for easy reference
+    // Array of all icons for easy reference
   const String icons[] = {shaftIcon, mineIcon, clipIcon, springIcon};
 
   String response = "<!DOCTYPE html><html><head><meta charset='UTF-8'><title>Order Received</title>";
@@ -267,7 +247,7 @@ void handleOrder() {
 }
 
 void handleAdmin() {
-  // Array of all icons for easy reference
+    // Array of all icons for easy reference
   const String icons[] = {shaftIcon, mineIcon, clipIcon, springIcon};
 
   String html = "<!DOCTYPE html><html><head><meta charset='UTF-8'><title>Admin Panel</title>";
@@ -337,7 +317,7 @@ void handleAdmin() {
 }
 
 void handleUpdateStock() {
-  for (int i = 0; i < 7; i++) {
+    for (int i = 0; i < 7; i++) {
     String argName = components[i].name + "_stock";
     if (server.hasArg(argName)) {
       int newStock = server.arg(argName).toInt();
@@ -407,23 +387,4 @@ String getCurrentTimestamp() {
   // Simple timestamp for demo purposes
   // In a real application, you would use an RTC module
   return String(millis() / 1000) + "s";
-}
-
-void saveStockToEEPROM() {
-  for (int i = 0; i < 7; i++) {
-    int address = i * sizeof(int);
-    EEPROM.writeInt(address, components[i].stock);
-  }
-  EEPROM.commit();
-}
-
-void loadStockFromEEPROM() {
-  for (int i = 0; i < 7; i++) {
-    int address = i * sizeof(int);
-    int value;
-    EEPROM.get(address, value);
-    if (value > 0) {  // Only update if there's a valid value
-      components[i].stock = value;
-    }
-  }
 }
