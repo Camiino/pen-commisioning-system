@@ -1,0 +1,22 @@
+# Arduino IDE
+*.ino.bin
+*.ino.elf
+*.ino.hex
+*.ino.lst
+*.ino.map
+*.ino.o
+*.ino.d
+/build/
+/obj/
+
+# GitHub-Sicherheit
+secrets.h
+*.pem
+*.key
+
+# SPIFFS/LittleFS
+/data/*.bin
+
+# PlatformIO (falls später genutzt)
+.pio/
+
