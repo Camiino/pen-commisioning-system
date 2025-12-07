@@ -1,34 +1,20 @@
-// WiFi Manager
-#include <WiFi.h>
-#include <WiFiManager.h>
-#include <IPAddress.h>
-#include <strings_en.h>
-#include <wm_consts_en.h>
-#include <wm_strings_en.h>
-#include <wm_strings_es.h>
+#include "web_server.h"
 
-// webserver
-#include <DNSServer.h>
-#include <WebServer.h>
-
-// persistent memory
-#include <EEPROM.h>
-
-//EEPROM configuration
-#define EEPROM_SIZE 256
-
-// webserver configuration
+// web server and dns
 WebServer server(80);
 DNSServer dnsServer;
 
-// define icons using Base64 encoding
+// Base64 Icons for pen components
 const String shaftIcon = "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiIHN0YW5kYWxvbmU9Im5vIj8+CjwhLS0gQ3JlYXRlZCB3aXRoIElua3NjYXBlIChodHRwOi8vd3d3Lmlua3NjYXBlLm9yZy8pIC0tPgoKPHN2ZwogICB3aWR0aD0iMjEuOTY2ODUiCiAgIGhlaWdodD0iMy4yNDg2MTg2IgogICB2aWV3Qm94PSIwIDAgMjEuOTY2ODUxIDMuMjQ4NjE4NiIKICAgdmVyc2lvbj0iMS4xIgogICBpZD0ic3ZnMSIKICAgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIgogICB4bWxuczpzdmc9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8ZGVmcwogICAgIGlkPSJkZWZzMSIgLz4KICA8ZwogICAgIGlkPSJsYXllcjEiCiAgICAgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoLTUuMDE2NTc0NiwtMTIuODYxODc5KSI+CiAgICA8cGF0aAogICAgICAgc3R5bGU9ImZpbGw6IzAwMDAwMCIKICAgICAgIGQ9Ik0gMjMuOTc3ODk5LDEzLjM0ODA2OCAyMy45MzM3MDEsMTIuOTk0NDc3IDkuNjc5NTU4LDEyLjkyODE3NyA1LjA4Mjg3MjksMTQuMzg2NzQgOS42MzUzNTkxLDE2IDIzLjk3NzksMTUuOTc3OTAxIGwgLTFlLTYsLTAuMzk3NzkgMi44OTUwMjksMC4wMjIxIDAuMDIyMSwtMi4yNTQxNDQgYyAtMS4yNDk4NzgsLTAuMDAzMyAtMS44OTcxMzEsMC4wMTgyNyAtMi45MTcxMjcsMmUtNiB6IgogICAgICAgaWQ9InBhdGgyIiAvPgogICAgPHBhdGgKICAgICAgIHN0eWxlPSJmaWxsOiMwMDAwMDAiCiAgICAgICBkPSJtIDIzLjk3Nzg5OSwxMy4zNDgwNjggLTAuMDQ0MiwtMC4zNTM1OTEgLTE0LjI1NDE0MywtMC4wNjYzIC00LjA2NjI5ODQsMS41NjkwNiBMIDkuNjM1MzU5MSwxNiAyMy45Nzc5LDE1Ljk3NzkwMSBsIC0xZS02LC0wLjM5Nzc5IDIuODk1MDI5LDAuMDIyMSAwLjAyMjEsLTIuMjU0MTQ0IGMgLTEuMjQ5ODc4LC0wLjAwMzMgLTEuODk3MTMxLDAuMDE4MjcgLTIuOTE3MTI3LDJlLTYgeiIKICAgICAgIGlkPSJwYXRoMyIgLz4KICA8L2c+Cjwvc3ZnPgo=";
-
-// Placeholder for other component icons (add more as needed)
+// placeholder icons
 const String mineIcon = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlnaHQ9IjQwMCIgdmlld0JveD0iMCAwIDggMCA4MDAiIHZpZXdCb3g9IjAgMCA4MCA4MDAiIGVuYWJsZT0icmVzaXplIj48cGF0aCBkPSJNMTQwMCAwMDUwMDAwMDAwMDAwMDAwMDAgZmlsbD0iIzAwMDAwMCIvPjwvc3ZnPg==";
 const String clipIcon = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlnaHQ9IjQwMCIgdmlld0JveD0iMCAwIDggMCA4MDAiIHZpZXdCb3g9IjAgMCA4MCA4MDAiIGVuYWJsZT0icmVzaXplIj48cGF0aCBkPSJNMTQwMCAwMDUwMDAwMDAwMDAwMDAwMDAgZmlsbD0iI2ZmMDAwMCIvPjwvc3ZnPg==";
 const String springIcon = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlnaHQ9IjQwMCIgdmlld0JveD0iMCAwIDggMCA4MDAiIHZpZXdCb3g9IjAgMCA4MCA4MDAiIGVuYWJsZT0icmVzaXplIj48cGF0aCBkPSJNMTQwMCAwMDUwMDAwMDAwMDAwMDAwMDAgZmlsbD0iIzAwMDAwMCIvPjwvc3ZnPg==";
+const String buttonIcon = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlnaHQ9IjQwMCIgdmlld0JveD0iMCAwIDggMCA4MDAiIHZpZXdCb3g9IjAgMCA4MCA4MDAiIGVuYWJsZT0icmVzaXplIj48cGF0aCBkPSJNMTQwMCAwMDUwMDAwMDAwMDAwMDAwMDAgZmlsbD0iIzAwMDAwMCIvPjwvc3ZnPg==";
+const String tipIcon = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlnaHQ9IjQwMCIgdmlld0JveD0iMCAwIDggMCA4MDAiIHZpZXdCb3g9IjAgMCA4MCA4MDAiIGVuYWJsZT0icmVzaXplIj48cGF0aCBkPSJNMTQwMCAwMDUwMDAwMDAwMDAwMDAwMDAgZmlsbD0iIzAwMDAwMCIvPjwvc3ZnPg==";
+const String ringIcon = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlnaHQ9IjQwMCIgdmlld0JveD0iMCAwIDggMCA4MDAiIHZpZXdCb3g9IjAgMCA4MCA4MDAiIGVuYWJsZT0icmVzaXplIj48cGF0aCBkPSJNMTQwMCAwMDUwMDAwMDAwMDAwMDAwMDAgZmlsbD0iIzAwMDAwMCIvPjwvc3ZnPg==";
 
+// define struct for saving stock
 struct Component {
   String name;
   String icon;
@@ -38,80 +24,156 @@ struct Component {
 
 Component components[7] = {
   {"Shaft", "0", 100, 20},  // Using index 0 to reference shaftIcon
-  {"Mine", "1", 150, 15},   // Using index 1 to reference mineIcon
-  {"Clip", "2", 200, 10},   // Using index 2 to reference clipIcon
-  {"Spring", "3", 80, 5},   // Using index 3 to reference springIcon
-  {"Button", "", 120, 10},  // No icon yet
-  {"Tip", "", 90, 5},       // No icon yet
-  {"Plastic Sleeve", "", 250, 30}  // No icon yet
+  {"Mine", "1", 150, 15},
+  {"Clip", "2", 200, 10},
+  {"Spring", "3", 80, 5},
+  {"Button", "4", 120, 10},
+  {"Tip", "5", 90, 5},
+  {"Ring", "6", 250, 30}
 };
 
-// Log structure
+void initEEPROM() {
+  if (!EEPROM.begin(EEPROM_SIZE)) {
+    logError("EEPROM initialisation failed!");
+  }
+  delay(200);
+  logInfo("EEPROM initialized");
+}
+
+void saveStockToEEPROM() {
+  for (int i = 0; i < 7; i++) {
+    int address = i * sizeof(int);
+    EEPROM.writeInt(address, components[i].stock);
+    logInfo("Save " + String(components[i].stock) + " item(s) of " + String(components[i].name) + " to EEPROM at address " + String(address));
+  }
+  EEPROM.commit();
+  logInfo("Saved stock quantities to EEPROM");
+}
+
+void loadStockFromEEPROM() {
+  for (int i = 0; i < 7; i++) {
+    int address = i * sizeof(int);
+    int value;
+    EEPROM.get(address, value);
+    if (value >= 0) {  // Only update if there's a valid value
+      components[i].stock = value;
+    }
+    logInfo("Load " + String(value) + " item(s) of " + String(components[i].name) + " from EEPROM at address " + String(address));
+  }
+  logInfo("Loaded stock quantities from EEPROM");
+}
+
+// structure for saving logs
 struct LogEntry {
   String timestamp;
   String component;
   int quantity;
-  String action; // "dispensed" or "added"
+  String action;
+};
+LogEntry logEntries[50];
+int logCount;
+
+// structure for EEPROM saving of logs (compact)
+struct EEPROMLogEntry {
+  uint32_t timestamp;  // Millis seit Start
+  char component[10]; // Max. 9 Zeichen + Nullterminator
+  int quantity;
+  char action[10];    // "dispensed" oder "added"
 };
 
-LogEntry logEntries[50]; // Array to store log entries
-int logCount = 0;
+void saveLogsToEEPROM() {
+  // save only the last MAX_LOG_ENTRIES values
+  int startIndex = max(0, logCount - MAX_LOG_ENTRIES);
+  for (int i = startIndex; i < logCount; i++) {
+    int logIndex = i - startIndex;
+    int address = LOG_START_ADDRESS + logIndex * sizeof(EEPROMLogEntry);
 
-void setup() {
-  // set up serial interface
-  Serial.begin(115200);
-  delay(1000);
+    EEPROMLogEntry entry;
+    entry.timestamp = logEntries[i].timestamp.substring(0, logEntries[i].timestamp.indexOf('s')).toInt();  // extract millis
+    strncpy(entry.component, logEntries[i].component.c_str(), 9);
+    entry.component[9] = '\0';  // zero terminator
+    entry.quantity = logEntries[i].quantity;
+    strncpy(entry.action, logEntries[i].action.c_str(), 9);
+    entry.action[9] = '\0';     // zero terminator
 
-  // Initialize EEPROM
-  if (!EEPROM.begin(EEPROM_SIZE)) {
-    Serial.println("Failed to initialize EEPROM");
-    delay(1000);
+    EEPROM.put(address, entry);
   }
+  EEPROM.commit();
+  logInfo("Saved " + String(min(logCount, MAX_LOG_ENTRIES)) + " logs to EEPROM");
+}
 
-  // load stock from EEPROM
+void loadLogsFromEEPROM() {
+  logCount = 0;  // reset
+
+  for (int i = 0; i < MAX_LOG_ENTRIES; i++) {
+    int address = LOG_START_ADDRESS + i * sizeof(EEPROMLogEntry);
+    EEPROMLogEntry entry;
+    EEPROM.get(address, entry);
+
+    // check if entry is valid (timestamp != 0)
+    if (entry.timestamp > 0 && entry.timestamp < 0xFFFFFFFF) {
+      logEntries[logCount].timestamp = String(entry.timestamp) + "s";
+      logEntries[logCount].component = String(entry.component);
+      logEntries[logCount].quantity = entry.quantity;
+      logEntries[logCount].action = String(entry.action);
+      logCount++;
+    }
+  }
+  logInfo("Loaded " + String(logCount) + " log entries from EEPROM");
+}
+
+void addLogEntry(String component, int quantity, String action) {
+  if (logCount < 50) {
+    logEntries[logCount].timestamp = getCurrentTimestamp();
+    logEntries[logCount].component = component;
+    logEntries[logCount].quantity = quantity;
+    logEntries[logCount].action = action;
+    logCount++;
+  } else {
+    // Shift all entries down by one
+    for (int i = 1; i < 50; i++) {
+      logEntries[i-1] = logEntries[i];
+    }
+    // Add new entry at the end
+    logEntries[49].timestamp = getCurrentTimestamp();
+    logEntries[49].component = component;
+    logEntries[49].quantity = quantity;
+    logEntries[49].action = action;
+  }
+  saveLogsToEEPROM();
+}
+
+String getCurrentTimestamp() {
+  // Simple timestamp for demo purposes
+  // In a real application, you would use an RTC module
+  return String(millis() / 1000) + "s";
+}
+
+void initWebServer() {
+  // load from EEPROM
   loadStockFromEEPROM();
+  loadLogsFromEEPROM();
 
-  // connect to wifi
-  WiFiManager wifiManager;
-  IPAddress localIP(192,168, 1, 1);  // set local AP IP
-  IPAddress gateway(192, 168, 1, 0);
-  IPAddress subnet(255, 255, 255, 0);
-  wifiManager.setAPStaticIPConfig(localIP, gateway, subnet);
-
-  // uncomment for testing
-  wifiManager.resetSettings();  // wipe saved credentials
-
-  // create AP named PenComissioningAP" if it can't connect
-  wifiManager.autoConnect("Pen Comissioning Machine AP");
-
-  // optional: customize
-  wifiManager.setAPCallback([](WiFiManager* wifiManager) {
-    Serial.println("Entered AP mode - connect to configure WiFi");
-  });
-
-  Serial.println("Connected to WiFi!");
-  Serial.println("IP: ");
-  Serial.println(WiFi.localIP());
-
-  // start webserver
+  // standard pages
   server.on("/", handleRoot);
-  server.on("/order", HTTP_POST, handleOrder);
+  server.on("/order", handleOrder);
   server.on("/admin", handleAdmin);
-  server.on("/update-stock", HTTP_POST, handleUpdateStock);
+  server.on("/update-stock", handleUpdateStock);
   server.onNotFound(handleNotFound);
 
   server.begin();
-  Serial.println("HTTP server started");
+  logInfo("Webserver started on port 80");
 }
 
-void loop() {
+void handleWebServer() {
   server.handleClient();
   delay(2);
+  if (!isWiFiConnected()) dnsServer.processNextRequest();
 }
 
 void handleRoot() {
-  // Array of all icons for easy reference
-  const String icons[] = {shaftIcon, mineIcon, clipIcon, springIcon};
+    // Array of all icons for easy reference
+  const String icons[] = {shaftIcon, mineIcon, clipIcon, springIcon, buttonIcon, tipIcon, ringIcon};
 
   String html = "<!DOCTYPE html><html><head><meta charset='UTF-8'><title>Pen Commissioning System</title>";
   html += "<style>";
@@ -207,8 +269,8 @@ void handleRoot() {
 }
 
 void handleOrder() {
-  // Array of all icons for easy reference
-  const String icons[] = {shaftIcon, mineIcon, clipIcon, springIcon};
+    // Array of all icons for easy reference
+  const String icons[] = {shaftIcon, mineIcon, clipIcon, springIcon, buttonIcon, tipIcon, ringIcon};
 
   String response = "<!DOCTYPE html><html><head><meta charset='UTF-8'><title>Order Received</title>";
   response += "<style>";
@@ -247,6 +309,7 @@ void handleOrder() {
           components[i].stock -= ordered;
           // Add log entry
           addLogEntry(components[i].name, ordered, "dispensed");
+          logInfo("Dispensed " + String(ordered) + " item(s) of " + components[i].name);
           // Save to EEPROM
           saveStockToEEPROM();
           response += "<div>Dispensed " + String(ordered) + " " + components[i].name + "(s)</div>";
@@ -267,8 +330,8 @@ void handleOrder() {
 }
 
 void handleAdmin() {
-  // Array of all icons for easy reference
-  const String icons[] = {shaftIcon, mineIcon, clipIcon, springIcon};
+    // Array of all icons for easy reference
+  const String icons[] = {shaftIcon, mineIcon, clipIcon, springIcon, buttonIcon, tipIcon, ringIcon};
 
   String html = "<!DOCTYPE html><html><head><meta charset='UTF-8'><title>Admin Panel</title>";
   html += "<style>";
@@ -337,7 +400,7 @@ void handleAdmin() {
 }
 
 void handleUpdateStock() {
-  for (int i = 0; i < 7; i++) {
+    for (int i = 0; i < 7; i++) {
     String argName = components[i].name + "_stock";
     if (server.hasArg(argName)) {
       int newStock = server.arg(argName).toInt();
@@ -347,8 +410,10 @@ void handleUpdateStock() {
           int difference = newStock - components[i].stock;
           if (difference > 0) {
             addLogEntry(components[i].name, difference, "added");
+            logInfo("Added " + String(difference) + " item(s) of " + components[i].name);
           } else if (difference < 0) {
             addLogEntry(components[i].name, -difference, "removed");
+            logInfo("Removed " + String(-difference) + " item(s) of " + components[i].name);
           }
         }
         components[i].stock = newStock;
@@ -381,49 +446,4 @@ void handleUpdateStock() {
 
 void handleNotFound() {
   server.send(404, "text/html", "<!DOCTYPE html><html><head><meta charset='UTF-8'><title>404 Not Found</title><style>body { font-family: Arial; text-align: center; padding: 50px; } h1 { color: #e74c3c; }</style></head><body><h1>404 Not Found</h1><p>The page you requested was not found</p><a href='/'>Return to home page</a></body></html>");
-}
-
-void addLogEntry(String component, int quantity, String action) {
-  if (logCount < 50) {
-    logEntries[logCount].timestamp = getCurrentTimestamp();
-    logEntries[logCount].component = component;
-    logEntries[logCount].quantity = quantity;
-    logEntries[logCount].action = action;
-    logCount++;
-  } else {
-    // Shift all entries down by one
-    for (int i = 1; i < 50; i++) {
-      logEntries[i-1] = logEntries[i];
-    }
-    // Add new entry at the end
-    logEntries[49].timestamp = getCurrentTimestamp();
-    logEntries[49].component = component;
-    logEntries[49].quantity = quantity;
-    logEntries[49].action = action;
-  }
-}
-
-String getCurrentTimestamp() {
-  // Simple timestamp for demo purposes
-  // In a real application, you would use an RTC module
-  return String(millis() / 1000) + "s";
-}
-
-void saveStockToEEPROM() {
-  for (int i = 0; i < 7; i++) {
-    int address = i * sizeof(int);
-    EEPROM.writeInt(address, components[i].stock);
-  }
-  EEPROM.commit();
-}
-
-void loadStockFromEEPROM() {
-  for (int i = 0; i < 7; i++) {
-    int address = i * sizeof(int);
-    int value;
-    EEPROM.get(address, value);
-    if (value > 0) {  // Only update if there's a valid value
-      components[i].stock = value;
-    }
-  }
 }
