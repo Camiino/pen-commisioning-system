@@ -30,23 +30,27 @@ Component components[7] = {
   {"Mine", "1", 150, 15},
   {"Clip", "2", 200, 10},
   {"Spring", "3", 80, 5},
-  {"Button", "", 120, 10},
-  {"Tip", "", 90, 5},
-  {"Ring", "", 250, 30}
+  {"Button", "4", 120, 10},
+  {"Tip", "5", 90, 5},
+  {"Ring", "6", 250, 30}
 };
 
 void initEEPROM() {
   if (!EEPROM.begin(EEPROM_SIZE)) {
     logError("EEPROM initialisation failed!");
   }
+  delay(200);
+  logInfo("EEPROM initialized");
 }
 
 void saveStockToEEPROM() {
   for (int i = 0; i < 7; i++) {
     int address = i * sizeof(int);
     EEPROM.writeInt(address, components[i].stock);
+    logInfo("Save " + String(components[i].stock) + " item(s) of " + String(components[i].name) + " to EEPROM at address " + String(address));
   }
   EEPROM.commit();
+  logInfo("Saved stock quantities to EEPROM");
 }
 
 void loadStockFromEEPROM() {
@@ -54,10 +58,12 @@ void loadStockFromEEPROM() {
     int address = i * sizeof(int);
     int value;
     EEPROM.get(address, value);
-    if (value > 0) {  // Only update if there's a valid value
+    if (value >= 0) {  // Only update if there's a valid value
       components[i].stock = value;
     }
+    logInfo("Load " + String(value) + " item(s) of " + String(components[i].name) + " from EEPROM at address " + String(address));
   }
+  logInfo("Loaded stock quantities from EEPROM");
 }
 
 // Log structure
@@ -72,6 +78,9 @@ LogEntry logEntries[50]; // Array to store log entries
 int logCount = 0;
 
 void initWebServer() {
+  // load stock from EEPROM
+  loadStockFromEEPROM();
+
   // standard pages
   server.on("/", handleRoot);
   server.on("/order", handleOrder);
@@ -89,9 +98,35 @@ void handleWebServer() {
   if (!isWiFiConnected()) dnsServer.processNextRequest();
 }
 
+void addLogEntry(String component, int quantity, String action) {
+  if (logCount < 50) {
+    logEntries[logCount].timestamp = getCurrentTimestamp();
+    logEntries[logCount].component = component;
+    logEntries[logCount].quantity = quantity;
+    logEntries[logCount].action = action;
+    logCount++;
+  } else {
+    // Shift all entries down by one
+    for (int i = 1; i < 50; i++) {
+      logEntries[i-1] = logEntries[i];
+    }
+    // Add new entry at the end
+    logEntries[49].timestamp = getCurrentTimestamp();
+    logEntries[49].component = component;
+    logEntries[49].quantity = quantity;
+    logEntries[49].action = action;
+  }
+}
+
+String getCurrentTimestamp() {
+  // Simple timestamp for demo purposes
+  // In a real application, you would use an RTC module
+  return String(millis() / 1000) + "s";
+}
+
 void handleRoot() {
     // Array of all icons for easy reference
-  const String icons[] = {shaftIcon, mineIcon, clipIcon, springIcon};
+  const String icons[] = {shaftIcon, mineIcon, clipIcon, springIcon, buttonIcon, tipIcon, ringIcon};
 
   String html = "<!DOCTYPE html><html><head><meta charset='UTF-8'><title>Pen Commissioning System</title>";
   html += "<style>";
@@ -188,7 +223,7 @@ void handleRoot() {
 
 void handleOrder() {
     // Array of all icons for easy reference
-  const String icons[] = {shaftIcon, mineIcon, clipIcon, springIcon};
+  const String icons[] = {shaftIcon, mineIcon, clipIcon, springIcon, buttonIcon, tipIcon, ringIcon};
 
   String response = "<!DOCTYPE html><html><head><meta charset='UTF-8'><title>Order Received</title>";
   response += "<style>";
@@ -227,6 +262,7 @@ void handleOrder() {
           components[i].stock -= ordered;
           // Add log entry
           addLogEntry(components[i].name, ordered, "dispensed");
+          logInfo("Dispensed " + String(ordered) + " item(s) of " + components[i].name);
           // Save to EEPROM
           saveStockToEEPROM();
           response += "<div>Dispensed " + String(ordered) + " " + components[i].name + "(s)</div>";
@@ -248,7 +284,7 @@ void handleOrder() {
 
 void handleAdmin() {
     // Array of all icons for easy reference
-  const String icons[] = {shaftIcon, mineIcon, clipIcon, springIcon};
+  const String icons[] = {shaftIcon, mineIcon, clipIcon, springIcon, buttonIcon, tipIcon, ringIcon};
 
   String html = "<!DOCTYPE html><html><head><meta charset='UTF-8'><title>Admin Panel</title>";
   html += "<style>";
@@ -327,8 +363,10 @@ void handleUpdateStock() {
           int difference = newStock - components[i].stock;
           if (difference > 0) {
             addLogEntry(components[i].name, difference, "added");
+            logInfo("Added " + String(difference) + " item(s) of " + components[i].name);
           } else if (difference < 0) {
             addLogEntry(components[i].name, -difference, "removed");
+            logInfo("Removed " + String(-difference) + " item(s) of " + components[i].name);
           }
         }
         components[i].stock = newStock;
@@ -361,30 +399,4 @@ void handleUpdateStock() {
 
 void handleNotFound() {
   server.send(404, "text/html", "<!DOCTYPE html><html><head><meta charset='UTF-8'><title>404 Not Found</title><style>body { font-family: Arial; text-align: center; padding: 50px; } h1 { color: #e74c3c; }</style></head><body><h1>404 Not Found</h1><p>The page you requested was not found</p><a href='/'>Return to home page</a></body></html>");
-}
-
-void addLogEntry(String component, int quantity, String action) {
-  if (logCount < 50) {
-    logEntries[logCount].timestamp = getCurrentTimestamp();
-    logEntries[logCount].component = component;
-    logEntries[logCount].quantity = quantity;
-    logEntries[logCount].action = action;
-    logCount++;
-  } else {
-    // Shift all entries down by one
-    for (int i = 1; i < 50; i++) {
-      logEntries[i-1] = logEntries[i];
-    }
-    // Add new entry at the end
-    logEntries[49].timestamp = getCurrentTimestamp();
-    logEntries[49].component = component;
-    logEntries[49].quantity = quantity;
-    logEntries[49].action = action;
-  }
-}
-
-String getCurrentTimestamp() {
-  // Simple timestamp for demo purposes
-  // In a real application, you would use an RTC module
-  return String(millis() / 1000) + "s";
 }

@@ -9,15 +9,15 @@ void initWiFi() {
   wifiManager.setAPStaticIPConfig(localIP, gateway, subnet);
 
   // uncomment for testing
-  wifiManager.resetSettings();  // wipe saved credentials
+  //wifiManager.resetSettings();  // wipe saved credentials
   wifiManager.setDebugOutput(false);  // deactivate debug logs
 
   // start wifi manager (automatically if there are no saved credentials)
   if (!wifiManager.autoConnect("Pen Commissioning Machine AP")) {
     logError("Error connecting to WiFi!");
+    logInfo("AP enabled. Connect to IP Address: " + localIP.toString());
     ESP.restart();  // restart on error
   }
-  logInfo("AP enabled. Connect to IP Address: " + localIP.toString());
 
   // create callback for AP
   wifiManager.setAPCallback([](WiFiManager* wifiManager) {

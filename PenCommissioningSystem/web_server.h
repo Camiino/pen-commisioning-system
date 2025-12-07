@@ -9,6 +9,11 @@
 extern WebServer server;
 extern DNSServer dnsServer;
 
+// EEPROM functions
+void initEEPROM();
+void saveStockToEEPROM();
+void loadStockFromEEPROM();
+
 // main functions
 void initWebServer();
 void handleWebServer();
@@ -17,9 +22,6 @@ void handleWebServer();
 void addLogEntry(String component, int quantity, String action);
 String getCurrentTimestamp();
 
-// EEPROM functions
-void initEEPROM();
-void saveStockToEEPROM(int stock);
 
 // handler for pages
 void handleRoot();

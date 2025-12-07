@@ -4,6 +4,7 @@
 
 void setup() {
   initSerial();
+  initEEPROM();
   initWiFi();
   initWebServer();
   }
