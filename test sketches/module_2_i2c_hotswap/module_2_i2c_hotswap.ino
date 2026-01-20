@@ -1,45 +1,90 @@
 #include <Wire.h>
+#include <EEPROM.h>
 
-const byte MY_ADDRESS = 0x11;  // I²C-Adresse dieses Slaves
-const char* MODULE_NAME = "Clip";  // Modul-Name (z. B. "Shaft", "Mine", etc.)
+// module info
+const char* MODULE_TYPE = "clip";
+byte START_ADDRESS = 0x11;  // start address
+byte MY_ADDRESS;  // new permanent address
+uint32_t uniqueID;  // 4-Byte UID
+
+// stock
+unsigned int STOCK_ADDRESS = 0;
+int stock = 0;  // module-specific data
 
 void setup() {
-  Serial.begin(9600);
-  Wire.begin(MY_ADDRESS);
-  Wire.onReceive(receiveEvent);
-  Wire.onRequest(sendModuleName);  // Callback für Master-Anfragen
+  // initialize serial interface
+  Serial.begin(115200);
+  Serial.println("Initialzed serial comunication");
+  
+  // initialize EEPROM
+  if (!EEPROM.length()) {
+    Serial.println("EEPROM initialization failed!");
+  } else {
+    EEPROM.get(0, stock);  // read stock from EEPROM
+    Serial.println("Loaded stock from EEPROM");
+    Serial.print("Stock: ");
+    Serial.println(stock);
+  }
 
-  // Meldung an den Master senden (nach dem Start)
-  delay(1000);  // Warte, bis I²C stabil ist
-  announceToMaster();
+  // initialize uniqueID
+  generateUniqueID();
+
+  // initialize I²C communication
+  Serial.println("Initialize I²C communication");
+  Serial.print("Starting on default address: 0x");
+  Serial.println(START_ADDRESS, HEX);
+  Wire.begin(START_ADDRESS);
+  Wire.onReceive(receiveEvent);
+  Wire.onRequest(sendModuleInfo);
 }
 
 void loop() {
-  // Leer (alles im Interrupt)
+  // empty (everything handled in interrupt)
 }
 
-// Sende Modul-Name an den Master (wenn angefragt)
-void sendModuleName() {
-  Wire.write(MODULE_NAME, strlen(MODULE_NAME) + 1);  // String inkl. Nullterminator
+void generateUniqueID() {
+  randomSeed(analogRead(0));
+  //uniqueID = random(0xFFFFFFFF);
+  uniqueID = random(2147483647);  // highest 32-bit decimal number
+  Serial.print("Generated new uniqueID: ");
+  Serial.println(uniqueID, HEX);
 }
 
-// Meldung an den Master (bei Start)
-void announceToMaster() {
-  Wire.beginTransmission(0x01);  // Master-Adresse (ESP32)
-  Wire.write('I');  // 'I' = Identifikation
-  Wire.write(MY_ADDRESS);  // Eigene I²C-Adresse
-  Wire.write(MODULE_NAME, strlen(MODULE_NAME) + 1);  // Modul-Name
-  Wire.endTransmission();
+// send module info (on request)
+void sendModuleInfo() {
+  Serial.println("Module info requested");
+  Wire.write(MODULE_TYPE, strlen(MODULE_TYPE) + 1);
+  Serial.print("Announced module type: ");
+  Serial.println(MODULE_TYPE);
+  // send uniqueID as packages
+  Wire.write((uniqueID >> 24) & 0xFF);
+  Wire.write((uniqueID >> 16) & 0xFF);
+  Wire.write((uniqueID >> 8) & 0xFF);
+  Wire.write(uniqueID & 0xFF);
+  Serial.print("Announced module UID: ");
+  Serial.println(uniqueID, HEX);
 }
 
-// Empfange Befehle vom Master
 void receiveEvent(int bytes) {
   if (bytes >= 1) {
     byte cmd = Wire.read();
-    if (cmd == 1) {
-      digitalWrite(LED_BUILTIN, HIGH);
-    } else if (cmd == 0) {
-      digitalWrite(LED_BUILTIN, LOW);
+    if (cmd == 'A') {  // address assignment cmd
+      byte newAddress = Wire.read();
+      uint32_t targetID = (Wire.read() << 24) | (Wire.read() << 16) | (Wire.read() << 8)  | Wire.read();
+      if (targetID == uniqueID) {  // check if this module is requested
+        MY_ADDRESS = newAddress;
+        Wire.begin(MY_ADDRESS);  // restart I²C on new address 
+        Serial.print("New address received: 0x");
+        Serial.println(MY_ADDRESS, HEX);
+      }
+    } else if (cmd == 'C') {  // collision detected cmd
+      uint32_t targetID = (Wire.read() << 24) | (Wire.read() << 16) | (Wire.read() << 8)  | Wire.read();
+      if (targetID == uniqueID) {
+        generateUniqueID();
+        // on next scan new UID will be sent
+      }
+    } else if (cmd == 1 || cmd == 0) {
+      digitalWrite(LED_BUILTIN, cmd);
     }
   }
 }
