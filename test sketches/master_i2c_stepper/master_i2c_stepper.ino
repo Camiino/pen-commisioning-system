@@ -7,27 +7,15 @@ void setup() {
 }
 
 void loop() {
-  // Slave 0x10 (1-Sekunden-Takt)
-  static bool state10 = false;
-  state10 = !state10;
-  Wire.beginTransmission(0x10);
-  Wire.write(state10 ? 1 : 0);
-  Wire.endTransmission();
-  Serial.print("0x10: ");
-  Serial.println(state10 ? "LED an" : "LED aus");
-
-  // Slave 0x11 (2-Sekunden-Takt)
-  static unsigned long lastTime11 = 0;
-  if (millis() - lastTime11 >= 2000) {
-    lastTime11 = millis();
-    static bool state11 = false;
-    state11 = !state11;
-    Wire.beginTransmission(0x11);
-    Wire.write(state11 ? 1 : 0);
+  // Slave 0x10 (5-Sekunden-Takt)
+  static unsigned long lastTime = 0;
+  if (millis() - lastTime >= 5000) {
+    lastTime = millis();
+    byte command = 1;
+    Wire.beginTransmission(0x10);
+    Wire.write(command);
     Wire.endTransmission();
-    Serial.print("0x11: ");
-    Serial.println(state11 ? "LED an" : "LED aus");
+    Serial.println("0x10: Sent dispensing command");
+    delay(500);
   }
-
-  delay(1000);  // 1-Sekunden-Takt für Slave 0x10
 }
