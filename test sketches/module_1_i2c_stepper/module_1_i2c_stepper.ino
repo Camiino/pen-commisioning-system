@@ -16,6 +16,7 @@ const int ldrPin = A0;  // LDR an Analog-Pin A0
 Stepper myStepper(stepsPerRevolution, 8, 10, 9, 11);
 
 void receiver(int n_bytes) {
+  Serial.println("Ja");
   while (Wire.available()) {
     command = Wire.read();
   }
@@ -30,7 +31,7 @@ void setup() {
   myStepper.setSpeed(10); // RPM
 
   // setup I²C
-  Wire.begin(0x10);
+  Wire.begin(0x11);
   Wire.onReceive(receiver);
   Serial.println("Ready to receive I²C commands");
 }

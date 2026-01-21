@@ -1,4 +1,5 @@
 #include "web_server.h"
+#include "i2c_manager.h"
 
 // web server and dns
 WebServer server(80);
@@ -58,7 +59,7 @@ void loadStockFromEEPROM() {
     if (value >= 0) {  // Only update if there's a valid value
       components[i].stock = value;
     }
-    logInfo("Load " + String(value) + " item(s) of " + String(components[i].name) + " from EEPROM at address " + String(address));
+    logInfo("Load " + String(components[i].stock) + " item(s) of " + String(components[i].name) + " from EEPROM at address " + String(address));
   }
   logInfo("Loaded stock quantities from EEPROM");
 }
@@ -310,6 +311,13 @@ void handleOrder() {
           // Add log entry
           addLogEntry(components[i].name, ordered, "dispensed");
           logInfo("Dispensed " + String(ordered) + " item(s) of " + components[i].name);
+          // Send actual dispense command to module
+          if (components[i].name == "Shaft") {
+              for (int j = 0; j < ordered; j++) {
+                  dispenseFromModule(0x11);  // Adresse des Shaft-Moduls
+                  delay(2000);  // Wartezeit für den Ausgabemechanismus
+              }
+          }
           // Save to EEPROM
           saveStockToEEPROM();
           response += "<div>Dispensed " + String(ordered) + " " + components[i].name + "(s)</div>";
