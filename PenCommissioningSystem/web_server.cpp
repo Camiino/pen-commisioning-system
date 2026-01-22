@@ -315,7 +315,7 @@ void handleOrder() {
           if (components[i].name == "Shaft") {
               for (int j = 0; j < ordered; j++) {
                   dispenseFromModule(0x11);  // Adresse des Shaft-Moduls
-                  delay(2000);  // Wartezeit für den Ausgabemechanismus
+                  delay(2500);  // Wartezeit für den Ausgabemechanismus
               }
           }
           // Save to EEPROM
