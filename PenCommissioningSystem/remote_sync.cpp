@@ -211,10 +211,16 @@ bool getText(const String &path, int &statusCode, String &responseBody) {
 String buildStatePayload() {
   String inventoryJson;
   buildInventoryJson(inventoryJson);
+  const String localIp = getLocalNetworkIp();
+  const String localBaseUrl = getLocalBaseUrl();
 
   String payload = "{";
   payload += "\"deviceId\":\"" + jsonEscape(remoteDeviceId) + "\",";
-  payload += "\"inventory\":" + inventoryJson;
+  payload += "\"inventory\":" + inventoryJson + ",";
+  payload += "\"network\":{";
+  payload += "\"localIp\":\"" + jsonEscape(localIp) + "\",";
+  payload += "\"localBaseUrl\":\"" + jsonEscape(localBaseUrl) + "\"";
+  payload += "}";
   payload += "}";
   return payload;
 }
@@ -242,11 +248,17 @@ void pushState(const String &context) {
 void sendCommandResult(const PendingCommand &command, bool ok, const String &responseJson, const String &errorMessage) {
   String inventoryJson;
   buildInventoryJson(inventoryJson);
+  const String localIp = getLocalNetworkIp();
+  const String localBaseUrl = getLocalBaseUrl();
 
   String payload = "{";
   payload += "\"deviceId\":\"" + jsonEscape(remoteDeviceId) + "\",";
   payload += "\"ok\":" + String(ok ? "true" : "false") + ",";
   payload += "\"inventory\":" + inventoryJson;
+  payload += ",\"network\":{";
+  payload += "\"localIp\":\"" + jsonEscape(localIp) + "\",";
+  payload += "\"localBaseUrl\":\"" + jsonEscape(localBaseUrl) + "\"";
+  payload += "}";
   if (ok) {
     payload += ",\"response\":" + (responseJson.length() > 0 ? responseJson : "null");
   } else {

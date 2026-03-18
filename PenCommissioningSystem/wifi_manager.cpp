@@ -37,3 +37,25 @@ void handleWiFi() {
 bool isWiFiConnected() {
   return WiFi.status() == WL_CONNECTED;
 }
+
+String getLocalNetworkIp() {
+  if (!isWiFiConnected()) {
+    return "";
+  }
+
+  IPAddress ip = WiFi.localIP();
+  if (ip == IPAddress(static_cast<uint32_t>(0))) {
+    return "";
+  }
+
+  return ip.toString();
+}
+
+String getLocalBaseUrl() {
+  String ip = getLocalNetworkIp();
+  if (ip.length() == 0) {
+    return "";
+  }
+
+  return "http://" + ip;
+}
