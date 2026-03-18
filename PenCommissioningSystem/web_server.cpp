@@ -1,7 +1,5 @@
 #include "web_server.h"
 
-#include "device_api.h"
-
 // web server and dns
 WebServer server(80);
 DNSServer dnsServer;
@@ -29,8 +27,6 @@ String getIconMarkup(const char *iconId) {
 }  // namespace
 
 void initWebServer() {
-  initDeviceApi();
-
   server.on("/", HTTP_GET, handleRoot);
   server.on("/order", HTTP_POST, handleOrder);
   server.on("/admin", HTTP_GET, handleAdmin);
