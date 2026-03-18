@@ -20,9 +20,11 @@
 namespace {
 constexpr unsigned long COMMAND_POLL_INTERVAL_MS = 1000;
 constexpr unsigned long STATE_PUSH_INTERVAL_MS = 30000;
+constexpr const char *PLACEHOLDER_DEVICE_TOKEN = "please-change-me";
+constexpr const char *DEFAULT_REMOTE_DEVICE_TOKEN = "pcs-remote-sync-20260318";
 
 const char *REMOTE_BACKEND_BASE = "https://automat-back.webeesign.com";
-const char *REMOTE_DEVICE_TOKEN = "please-change-me";
+const char *REMOTE_DEVICE_TOKEN = DEFAULT_REMOTE_DEVICE_TOKEN;
 
 WiFiClient plainClient;
 #if defined(ESP8266)
@@ -93,6 +95,17 @@ String makeDefaultDeviceId() {
 #else
   return "pen-device-" + String(static_cast<uint32_t>(ESP.getEfuseMac()), HEX);
 #endif
+}
+
+bool hasRemoteSyncConfig() {
+  String backendBase = REMOTE_BACKEND_BASE;
+  String deviceToken = REMOTE_DEVICE_TOKEN;
+  backendBase.trim();
+  deviceToken.trim();
+
+  return backendBase.length() > 0 &&
+         deviceToken.length() > 0 &&
+         deviceToken != PLACEHOLDER_DEVICE_TOKEN;
 }
 
 bool beginHttp(HTTPClient &http, const String &url) {
@@ -363,10 +376,10 @@ void pollCommands() {
 void initRemoteSync() {
   secureClient.setInsecure();
   remoteDeviceId = makeDefaultDeviceId();
-  remoteSyncConfigured = String(REMOTE_BACKEND_BASE).length() > 0 && String(REMOTE_DEVICE_TOKEN).length() > 0;
+  remoteSyncConfigured = hasRemoteSyncConfig();
 
   if (!remoteSyncConfigured) {
-    logInfo("Remote sync disabled");
+    logInfo("Remote sync disabled. Set REMOTE_DEVICE_TOKEN in remote_sync.cpp to enable it.");
     return;
   }
 
