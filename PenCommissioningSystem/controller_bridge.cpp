@@ -22,7 +22,7 @@ struct ControllerRoute {
 
 // Update componentKey as more physical modules are added.
 ControllerRoute controllerRoutes[] = {
-  {"upperShell", 0x11, "module_1_i2c_stepper"},
+  {"shell", 0x11, "module_1_i2c_stepper"},
 };
 
 bool controllerInitialized = false;

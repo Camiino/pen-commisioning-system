@@ -4,28 +4,6 @@
 WebServer server(80);
 DNSServer dnsServer;
 
-// Base64 icons for pen components
-const String shaftIcon = "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiIHN0YW5kYWxvbmU9Im5vIj8+CjwhLS0gQ3JlYXRlZCB3aXRoIElua3NjYXBlIChodHRwOi8vd3d3Lmlua3NjYXBlLm9yZy8pIC0tPgoKPHN2ZwogICB3aWR0aD0iMjEuOTY2ODUiCiAgIGhlaWdodD0iMy4yNDg2MTg2IgogICB2aWV3Qm94PSIwIDAgMjEuOTY2ODUxIDMuMjQ4NjE4NiIKICAgdmVyc2lvbj0iMS4xIgogICBpZD0ic3ZnMSIKICAgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIgogICB4bWxuczpzdmc9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8ZGVmcwogICAgIGlkPSJkZWZzMSIgLz4KICA8ZwogICAgIGlkPSJsYXllcjEiCiAgICAgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoLTUuMDE2NTc0NiwtMTIuODYxODc5KSI+CiAgICA8cGF0aAogICAgICAgc3R5bGU9ImZpbGw6IzAwMDAwMCIKICAgICAgIGQ9Ik0gMjMuOTc3ODk5LDEzLjM0ODA2OCAyMy45MzM3MDEsMTIuOTk0NDc3IDkuNjc5NTU4LDEyLjkyODE3NyA1LjA4Mjg3MjksMTQuMzg2NzQgOS42MzUzNTkxLDE2IDIzLjk3NzksMTUuOTc3OTAxIGwgLTFlLTYsLTAuMzk3NzkgMi44OTUwMjksMC4wMjIxIDAuMDIyMSwtMi4yNTQxNDQgYyAtMS4yNDk4NzgsLTAuMDAzMyAtMS44OTcxMzEsMC4wMTgyNyAtMi45MTcxMjcsMmUtNiB6IgogICAgICAgaWQ9InBhdGgyIiAvPgogICAgPHBhdGgKICAgICAgIHN0eWxlPSJmaWxsOiMwMDAwMDAiCiAgICAgICBkPSJtIDIzLjk3Nzg5OSwxMy4zNDgwNjggLTAuMDQ0MiwtMC4zNTM1OTEgLTE0LjI1NDE0MywtMC4wNjYzIC00LjA2NjI5ODQsMS41NjkwNiBMIDkuNjM1MzU5MSwxNiAyMy45Nzc5LDE1Ljk3NzkwMSBsIC0xZS02LC0wLjM5Nzc5IDIuODk1MDI5LDAuMDIyMSAwLjAyMjEsLTIuMjU0MTQ0IGMgLTEuMjQ5ODc4LC0wLjAwMzMgLTEuODk3MTMxLDAuMDE4MjcgLTIuOTE3MTI3LDJlLTYgeiIKICAgICAgIGlkPSJwYXRoMyIgLz4KICA8L2c+Cjwvc3ZnPgo=";
-const String mineIcon = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlnaHQ9IjQwMCIgdmlld0JveD0iMCAwIDggMCA4MDAiIHZpZXdCb3g9IjAgMCA4MCA4MDAiIGVuYWJsZT0icmVzaXplIj48cGF0aCBkPSJNMTQwMCAwMDUwMDAwMDAwMDAwMDAwMDAgZmlsbD0iIzAwMDAwMCIvPjwvc3ZnPg==";
-const String clipIcon = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlnaHQ9IjQwMCIgdmlld0JveD0iMCAwIDggMCA4MDAiIHZpZXdCb3g9IjAgMCA4MCA4MDAiIGVuYWJsZT0icmVzaXplIj48cGF0aCBkPSJNMTQwMCAwMDUwMDAwMDAwMDAwMDAwMDAgZmlsbD0iI2ZmMDAwMCIvPjwvc3ZnPg==";
-const String springIcon = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlnaHQ9IjQwMCIgdmlld0JveD0iMCAwIDggMCA4MDAiIHZpZXdCb3g9IjAgMCA4MCA4MDAiIGVuYWJsZT0icmVzaXplIj48cGF0aCBkPSJNMTQwMCAwMDUwMDAwMDAwMDAwMDAwMDAgZmlsbD0iIzAwMDAwMCIvPjwvc3ZnPg==";
-const String buttonIcon = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlnaHQ9IjQwMCIgdmlld0JveD0iMCAwIDggMCA4MDAiIHZpZXdCb3g9IjAgMCA4MCA4MDAiIGVuYWJsZT0icmVzaXplIj48cGF0aCBkPSJNMTQwMCAwMDUwMDAwMDAwMDAwMDAwMDAgZmlsbD0iIzAwMDAwMCIvPjwvc3ZnPg==";
-const String tipIcon = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlnaHQ9IjQwMCIgdmlld0JveD0iMCAwIDggMCA4MDAiIHZpZXdCb3g9IjAgMCA4MCA4MDAiIGVuYWJsZT0icmVzaXplIj48cGF0aCBkPSJNMTQwMCAwMDUwMDAwMDAwMDAwMDAwMDAgZmlsbD0iIzAwMDAwMCIvPjwvc3ZnPg==";
-const String ringIcon = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlnaHQ9IjQwMCIgdmlld0JveD0iMCAwIDggMCA4MDAiIHZpZXdCb3g9IjAgMCA4MCA4MDAiIGVuYWJsZT0icmVzaXplIj48cGF0aCBkPSJNMTQwMCAwMDUwMDAwMDAwMDAwMDAwMDAgZmlsbD0iIzAwMDAwMCIvPjwvc3ZnPg==";
-
-namespace {
-const String icons[] = {shaftIcon, mineIcon, clipIcon, springIcon, buttonIcon, tipIcon, ringIcon};
-
-String getIconMarkup(const char *iconId) {
-  const int index = String(iconId).toInt();
-  if (index < 0 || index >= static_cast<int>(sizeof(icons) / sizeof(icons[0]))) {
-    return "";
-  }
-
-  return "<img src='" + icons[index] + "' width='70' alt='icon'>";
-}
-}  // namespace
-
 void initWebServer() {
   server.on("/", HTTP_GET, handleRoot);
   server.on("/order", HTTP_POST, handleOrder);
@@ -79,7 +57,7 @@ void handleRoot() {
 
   for (int index = 0; index < COMPONENT_COUNT; ++index) {
     html += "<div class='component-row'>";
-    html += "<div class='component-icon'>" + getIconMarkup(components[index].iconId) + "</div>";
+    // html += "<div class='component-icon'>" + getIconMarkup(components[index].iconId) + "</div>";
     html += "<div class='component-name'>" + String(components[index].name) + "</div>";
     html += "<input class='form-input' type='number' min='0' name='" + String(components[index].name) + "' value='0'>";
     html += "</div>";
@@ -96,7 +74,8 @@ void handleRoot() {
 
   for (int index = 0; index < COMPONENT_COUNT; ++index) {
     html += "<tr>";
-    html += "<td><span class='component-icon-table'>" + getIconMarkup(components[index].iconId) + "</span>" + String(components[index].name) + "</td>";
+    // html += "<td><span class='component-icon-table'>" + getIconMarkup(components[index].iconId) + "</span>" + String(components[index].name) + "</td>";
+    html += "<td>" + String(components[index].name) + "</td>";
     html += "<td>" + String(components[index].stock) + "</td>";
     html += "<td class='";
     html += components[index].stock <= components[index].reorderLevel ? "low-stock" : "status-ok";
@@ -158,7 +137,7 @@ void handleOrder() {
       for (int index = 0; index < lineCount; ++index) {
         Component *component = findComponentByKey(keys[index]);
         response += "<div class='order-item'>";
-        response += "<div class='order-icon'>" + getIconMarkup(component->iconId) + "</div>";
+        // response += "<div class='order-icon'>" + getIconMarkup(component->iconId) + "</div>";
         response += "<div>Dispensed " + String(quantities[index]) + " " + String(component->name) + "(s)</div>";
         response += "</div>";
       }
