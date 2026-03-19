@@ -20,6 +20,8 @@
 namespace {
 constexpr unsigned long COMMAND_POLL_INTERVAL_MS = 1000;
 constexpr unsigned long STATE_PUSH_INTERVAL_MS = 30000;
+constexpr unsigned long IDLE_POLL_LOG_INTERVAL_MS = 30000;
+constexpr uint16_t REMOTE_HTTP_TIMEOUT_MS = 5000;
 constexpr const char *PLACEHOLDER_DEVICE_TOKEN = "please-change-me";
 constexpr const char *DEFAULT_REMOTE_DEVICE_TOKEN = "pcs-remote-sync-20260318";
 
@@ -35,6 +37,7 @@ WiFiClientSecure secureClient;
 
 unsigned long lastCommandPollAt = 0;
 unsigned long lastStatePushAt = 0;
+unsigned long lastIdlePollLogAt = 0;
 bool remoteSyncConfigured = false;
 String remoteDeviceId;
 
@@ -109,11 +112,19 @@ bool hasRemoteSyncConfig() {
 }
 
 bool beginHttp(HTTPClient &http, const String &url) {
+  bool ok = false;
   if (url.startsWith("https://")) {
-    return http.begin(secureClient, url);
+    ok = http.begin(secureClient, url);
+  } else {
+    ok = http.begin(plainClient, url);
   }
 
-  return http.begin(plainClient, url);
+  if (ok) {
+    http.setTimeout(REMOTE_HTTP_TIMEOUT_MS);
+    http.setReuse(false);
+  }
+
+  return ok;
 }
 
 bool parseKeyValueLine(const String &line, String &key, String &value) {
@@ -174,6 +185,7 @@ bool postJson(const String &path, const String &payload, int &statusCode, String
   }
 
   http.addHeader("Content-Type", "application/json");
+  http.addHeader("Connection", "close");
   http.addHeader("x-device-id", remoteDeviceId);
   http.addHeader("x-device-token", REMOTE_DEVICE_TOKEN);
 
@@ -195,6 +207,7 @@ bool getText(const String &path, int &statusCode, String &responseBody) {
     return false;
   }
 
+  http.addHeader("Connection", "close");
   http.addHeader("x-device-id", remoteDeviceId);
   http.addHeader("x-device-token", REMOTE_DEVICE_TOKEN);
 
@@ -276,7 +289,10 @@ void sendCommandResult(const PendingCommand &command, bool ok, const String &res
 
   if (statusCode < 200 || statusCode >= 300) {
     logError("Command result rejected (" + String(statusCode) + "): " + responseBody);
+    return;
   }
+
+  logInfo("Remote command " + command.id + " result sent");
 }
 
 bool executeFulfillOrder(const String &encodedLines, String &responseJson, String &error) {
@@ -327,6 +343,8 @@ void executeCommand(const PendingCommand &command) {
   String responseJson;
   bool ok = false;
 
+  logInfo("Executing remote command " + command.id + " (" + command.type + ")");
+
   if (command.type == "adjustStock") {
     ok = adjustComponentStock(command.key, command.delta, command.reason, command.details, error);
     if (ok) {
@@ -351,6 +369,9 @@ void executeCommand(const PendingCommand &command) {
     error = "Unsupported command type";
   }
 
+  if (!ok) {
+    logError("Remote command " + command.id + " failed: " + error);
+  }
   sendCommandResult(command, ok, responseJson, error);
 }
 
@@ -367,6 +388,11 @@ void pollCommands() {
   }
 
   if (statusCode == 204) {
+    const unsigned long now = millis();
+    if (now - lastIdlePollLogAt >= IDLE_POLL_LOG_INTERVAL_MS) {
+      lastIdlePollLogAt = now;
+      logInfo("Remote command poll OK (no pending command)");
+    }
     return;
   }
 
@@ -381,6 +407,7 @@ void pollCommands() {
     return;
   }
 
+  logInfo("Claimed remote command " + command.id + " (" + command.type + ")");
   executeCommand(command);
 }
 }  // namespace
