@@ -1,4 +1,5 @@
 #include "logging.h"
+#include "controller_bridge.h"
 #include "device_api.h"
 #include "inventory_state.h"
 #include "remote_sync.h"
@@ -8,6 +9,7 @@
 void setup() {
   initSerial();
   initInventoryState();
+  initControllerBridge();
   initWiFi();
   initDeviceApi();
   initWebServer();

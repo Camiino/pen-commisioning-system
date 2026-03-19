@@ -2,6 +2,7 @@
 
 #include <EEPROM.h>
 
+#include "controller_bridge.h"
 #include "logging.h"
 
 namespace {
@@ -49,6 +50,33 @@ void saveInventoryState() {
 
 bool isReasonableValue(int value) {
   return value >= 0 && value <= 100000;
+}
+
+bool validateOrderLines(const String *keys, const int *quantities, size_t lineCount, String &error) {
+  if (lineCount == 0) {
+    error = "At least one order line is required";
+    return false;
+  }
+
+  for (size_t index = 0; index < lineCount; ++index) {
+    if (quantities[index] <= 0) {
+      error = "Quantities must be positive";
+      return false;
+    }
+
+    Component *component = findComponentByKey(keys[index]);
+    if (component == nullptr) {
+      error = "Unknown item key";
+      return false;
+    }
+
+    if (component->stock < quantities[index]) {
+      error = "Insufficient stock for " + String(component->name);
+      return false;
+    }
+  }
+
+  return true;
 }
 }  // namespace
 
@@ -199,36 +227,52 @@ bool setComponentMin(const String &key, int target, String &error) {
 }
 
 bool fulfillOrder(const String *keys, const int *quantities, size_t lineCount, String &error) {
-  if (lineCount == 0) {
-    error = "At least one order line is required";
+  if (!validateOrderLines(keys, quantities, lineCount, error)) {
     return false;
   }
 
-  for (size_t index = 0; index < lineCount; ++index) {
-    if (quantities[index] <= 0) {
-      error = "Quantities must be positive";
-      return false;
-    }
+  bool savedDirectChanges = false;
+  int processedUnits = 0;
 
+  for (size_t index = 0; index < lineCount; ++index) {
     Component *component = findComponentByKey(keys[index]);
     if (component == nullptr) {
       error = "Unknown item key";
       return false;
     }
 
-    if (component->stock < quantities[index]) {
-      error = "Insufficient stock for " + String(component->name);
-      return false;
+    if (hasDispenseController(component->key)) {
+      for (int unit = 0; unit < quantities[index]; ++unit) {
+        String dispenseDetails;
+        if (!confirmDispenseForComponent(component->key, dispenseDetails, error)) {
+          if (processedUnits > 0) {
+            error += ". Order stopped after " + String(processedUnits) + " confirmed unit(s)";
+          }
+          return false;
+        }
+
+        String stockError;
+        if (!adjustComponentStock(component->key, -1, "Bestellung ausgegeben", dispenseDetails, stockError)) {
+          error = "Confirmed dispense for " + String(component->name) + " could not be written to inventory: " + stockError;
+          return false;
+        }
+
+        ++processedUnits;
+      }
+
+      continue;
     }
-  }
 
-  for (size_t index = 0; index < lineCount; ++index) {
-    Component *component = findComponentByKey(keys[index]);
     component->stock -= quantities[index];
-    addLogEntry("Bestellung ausgegeben", component->name, -quantities[index], "API/local fulfillment");
+    addLogEntry("Bestellung ausgegeben", component->name, -quantities[index], "No controller confirmation configured");
+    processedUnits += quantities[index];
+    savedDirectChanges = true;
   }
 
-  saveInventoryState();
+  if (savedDirectChanges) {
+    saveInventoryState();
+  }
+
   return true;
 }
 
