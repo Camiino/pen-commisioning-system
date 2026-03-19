@@ -28,13 +28,6 @@ constexpr const char *DEFAULT_REMOTE_DEVICE_TOKEN = "pcs-remote-sync-20260318";
 const char *REMOTE_BACKEND_BASE = "https://automat-back.webeesign.com";
 const char *REMOTE_DEVICE_TOKEN = DEFAULT_REMOTE_DEVICE_TOKEN;
 
-WiFiClient plainClient;
-#if defined(ESP8266)
-BearSSL::WiFiClientSecure secureClient;
-#else
-WiFiClientSecure secureClient;
-#endif
-
 unsigned long lastCommandPollAt = 0;
 unsigned long lastStatePushAt = 0;
 unsigned long lastIdlePollLogAt = 0;
@@ -111,22 +104,6 @@ bool hasRemoteSyncConfig() {
          deviceToken != PLACEHOLDER_DEVICE_TOKEN;
 }
 
-bool beginHttp(HTTPClient &http, const String &url) {
-  bool ok = false;
-  if (url.startsWith("https://")) {
-    ok = http.begin(secureClient, url);
-  } else {
-    ok = http.begin(plainClient, url);
-  }
-
-  if (ok) {
-    http.setTimeout(REMOTE_HTTP_TIMEOUT_MS);
-    http.setReuse(false);
-  }
-
-  return ok;
-}
-
 bool parseKeyValueLine(const String &line, String &key, String &value) {
   const int split = line.indexOf('=');
   if (split <= 0) {
@@ -179,46 +156,109 @@ bool parsePendingCommand(const String &body, PendingCommand &command) {
 bool postJson(const String &path, const String &payload, int &statusCode, String &responseBody) {
   HTTPClient http;
   const String url = String(REMOTE_BACKEND_BASE) + path;
-  if (!beginHttp(http, url)) {
-    logError("Remote sync failed to begin request: " + url);
-    return false;
-  }
+  if (url.startsWith("https://")) {
+#if defined(ESP8266)
+    BearSSL::WiFiClientSecure secureClient;
+#else
+    WiFiClientSecure secureClient;
+#endif
+    secureClient.setInsecure();
+    if (!http.begin(secureClient, url)) {
+      logError("Remote sync failed to begin request: " + url);
+      return false;
+    }
 
-  http.addHeader("Content-Type", "application/json");
-  http.addHeader("Connection", "close");
-  http.addHeader("x-device-id", remoteDeviceId);
-  http.addHeader("x-device-token", REMOTE_DEVICE_TOKEN);
+    http.setTimeout(REMOTE_HTTP_TIMEOUT_MS);
+    http.setReuse(false);
+    http.addHeader("Content-Type", "application/json");
+    http.addHeader("Connection", "close");
+    http.addHeader("x-device-id", remoteDeviceId);
+    http.addHeader("x-device-token", REMOTE_DEVICE_TOKEN);
 
-  statusCode = http.POST(payload);
-  if (statusCode > 0) {
-    responseBody = http.getString();
+    statusCode = http.POST(payload);
+    if (statusCode > 0) {
+      responseBody = http.getString();
+    } else {
+      responseBody = http.errorToString(statusCode);
+    }
+    http.end();
+    return statusCode > 0;
   } else {
-    responseBody = http.errorToString(statusCode);
+    WiFiClient plainClient;
+    if (!http.begin(plainClient, url)) {
+      logError("Remote sync failed to begin request: " + url);
+      return false;
+    }
+
+    http.setTimeout(REMOTE_HTTP_TIMEOUT_MS);
+    http.setReuse(false);
+    http.addHeader("Content-Type", "application/json");
+    http.addHeader("Connection", "close");
+    http.addHeader("x-device-id", remoteDeviceId);
+    http.addHeader("x-device-token", REMOTE_DEVICE_TOKEN);
+
+    statusCode = http.POST(payload);
+    if (statusCode > 0) {
+      responseBody = http.getString();
+    } else {
+      responseBody = http.errorToString(statusCode);
+    }
+    http.end();
+    return statusCode > 0;
   }
-  http.end();
-  return statusCode > 0;
 }
 
 bool getText(const String &path, int &statusCode, String &responseBody) {
   HTTPClient http;
   const String url = String(REMOTE_BACKEND_BASE) + path;
-  if (!beginHttp(http, url)) {
-    logError("Remote sync failed to begin poll: " + url);
-    return false;
-  }
+  if (url.startsWith("https://")) {
+#if defined(ESP8266)
+    BearSSL::WiFiClientSecure secureClient;
+#else
+    WiFiClientSecure secureClient;
+#endif
+    secureClient.setInsecure();
+    if (!http.begin(secureClient, url)) {
+      logError("Remote sync failed to begin poll: " + url);
+      return false;
+    }
 
-  http.addHeader("Connection", "close");
-  http.addHeader("x-device-id", remoteDeviceId);
-  http.addHeader("x-device-token", REMOTE_DEVICE_TOKEN);
+    http.setTimeout(REMOTE_HTTP_TIMEOUT_MS);
+    http.setReuse(false);
+    http.addHeader("Connection", "close");
+    http.addHeader("x-device-id", remoteDeviceId);
+    http.addHeader("x-device-token", REMOTE_DEVICE_TOKEN);
 
-  statusCode = http.GET();
-  if (statusCode > 0) {
-    responseBody = http.getString();
+    statusCode = http.GET();
+    if (statusCode > 0) {
+      responseBody = http.getString();
+    } else {
+      responseBody = http.errorToString(statusCode);
+    }
+    http.end();
+    return statusCode > 0;
   } else {
-    responseBody = http.errorToString(statusCode);
+    WiFiClient plainClient;
+    if (!http.begin(plainClient, url)) {
+      logError("Remote sync failed to begin poll: " + url);
+      return false;
+    }
+
+    http.setTimeout(REMOTE_HTTP_TIMEOUT_MS);
+    http.setReuse(false);
+    http.addHeader("Connection", "close");
+    http.addHeader("x-device-id", remoteDeviceId);
+    http.addHeader("x-device-token", REMOTE_DEVICE_TOKEN);
+
+    statusCode = http.GET();
+    if (statusCode > 0) {
+      responseBody = http.getString();
+    } else {
+      responseBody = http.errorToString(statusCode);
+    }
+    http.end();
+    return statusCode > 0;
   }
-  http.end();
-  return statusCode > 0;
 }
 
 String buildStatePayload() {
@@ -413,7 +453,6 @@ void pollCommands() {
 }  // namespace
 
 void initRemoteSync() {
-  secureClient.setInsecure();
   remoteDeviceId = makeDefaultDeviceId();
   remoteSyncConfigured = hasRemoteSyncConfig();
 
