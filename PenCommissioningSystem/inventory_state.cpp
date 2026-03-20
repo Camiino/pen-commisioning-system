@@ -97,7 +97,7 @@ Component components[COMPONENT_COUNT] = {
   {"spring", "Feder", "KUG-FED-001", "A-12", "3", 45, 20},
   {"refill", "Mine", "KUG-MIN-001", "B-08", "1", 15, 25},
   {"shell", "Schale", "KUG-SCH-001", "C-04", "0", 38, 15},
-  {"plunger", "Drucker", "KUG-DRU-001", "D-11", "4", 8, 10},
+  {"plunger", "Drücker", "KUG-DRU-001", "D-11", "4", 8, 10},
   {"tip", "Spitze", "KUG-SPI-001", "E-02", "5", 22, 10},
 };
 
