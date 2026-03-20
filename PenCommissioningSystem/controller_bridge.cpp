@@ -23,7 +23,8 @@ struct ControllerRoute {
 
 // Update componentKey as more physical modules are added.
 ControllerRoute controllerRoutes[] = {
-  {"shell", 0x11, "module_1_i2c_stepper"},
+  {"shell", 0x11, "subie_mech"},
+  {"tip", 0x11, "subie_mech"},
 };
 
 bool controllerInitialized = false;

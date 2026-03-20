@@ -20,6 +20,7 @@ constexpr ComponentKeyAlias COMPONENT_KEY_ALIASES[] = {
   {"mine", "refill"},
   {"shaft", "shell"},
   {"upperShell", "shell"},
+  {"spitze", "tip"},
   {"button", "plunger"},
 };
 
