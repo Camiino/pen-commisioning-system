@@ -2,6 +2,7 @@
 
 #include <Wire.h>
 
+#include "inventory_state.h"
 #include "logging.h"
 
 namespace {
@@ -28,8 +29,13 @@ ControllerRoute controllerRoutes[] = {
 bool controllerInitialized = false;
 
 const ControllerRoute *findRouteByKey(const String &key) {
+  const char *resolvedKey = resolveComponentKey(key);
+  if (resolvedKey == nullptr) {
+    return nullptr;
+  }
+
   for (size_t index = 0; index < sizeof(controllerRoutes) / sizeof(controllerRoutes[0]); ++index) {
-    if (key.equalsIgnoreCase(controllerRoutes[index].componentKey)) {
+    if (String(controllerRoutes[index].componentKey).equalsIgnoreCase(resolvedKey)) {
       return &controllerRoutes[index];
     }
   }

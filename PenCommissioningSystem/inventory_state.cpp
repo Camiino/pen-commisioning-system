@@ -10,6 +10,19 @@ constexpr int EEPROM_SIZE = 512;
 constexpr int STOCK_BASE_ADDRESS = 0;
 constexpr int MIN_BASE_ADDRESS = STOCK_BASE_ADDRESS + (COMPONENT_COUNT * static_cast<int>(sizeof(int)));
 
+struct ComponentKeyAlias {
+  const char *alias;
+  const char *canonicalKey;
+};
+
+// Preserve upstream component keys so hosted/local clients keep working after renames.
+constexpr ComponentKeyAlias COMPONENT_KEY_ALIASES[] = {
+  {"mine", "refill"},
+  {"shaft", "shell"},
+  {"upperShell", "shell"},
+  {"button", "plunger"},
+};
+
 String escapeJson(const String &value) {
   String escaped;
   escaped.reserve(value.length() + 8);
@@ -118,9 +131,30 @@ void initInventoryState() {
   logInfo("Inventory state loaded from EEPROM");
 }
 
-Component *findComponentByKey(const String &key) {
+const char *resolveComponentKey(const String &key) {
   for (int index = 0; index < COMPONENT_COUNT; ++index) {
     if (key.equalsIgnoreCase(components[index].key)) {
+      return components[index].key;
+    }
+  }
+
+  for (size_t index = 0; index < sizeof(COMPONENT_KEY_ALIASES) / sizeof(COMPONENT_KEY_ALIASES[0]); ++index) {
+    if (key.equalsIgnoreCase(COMPONENT_KEY_ALIASES[index].alias)) {
+      return COMPONENT_KEY_ALIASES[index].canonicalKey;
+    }
+  }
+
+  return nullptr;
+}
+
+Component *findComponentByKey(const String &key) {
+  const char *resolvedKey = resolveComponentKey(key);
+  if (resolvedKey == nullptr) {
+    return nullptr;
+  }
+
+  for (int index = 0; index < COMPONENT_COUNT; ++index) {
+    if (String(components[index].key).equalsIgnoreCase(resolvedKey)) {
       return &components[index];
     }
   }
@@ -139,8 +173,13 @@ Component *findComponentByName(const String &name) {
 }
 
 int getComponentIndexByKey(const String &key) {
+  const char *resolvedKey = resolveComponentKey(key);
+  if (resolvedKey == nullptr) {
+    return -1;
+  }
+
   for (int index = 0; index < COMPONENT_COUNT; ++index) {
-    if (key.equalsIgnoreCase(components[index].key)) {
+    if (String(components[index].key).equalsIgnoreCase(resolvedKey)) {
       return index;
     }
   }

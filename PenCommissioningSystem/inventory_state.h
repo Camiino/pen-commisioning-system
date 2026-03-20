@@ -28,6 +28,7 @@ extern LogEntry logEntries[MAX_LOG_ENTRIES];
 extern int logCount;
 
 void initInventoryState();
+const char *resolveComponentKey(const String &key);
 Component *findComponentByKey(const String &key);
 Component *findComponentByName(const String &name);
 int getComponentIndexByKey(const String &key);
