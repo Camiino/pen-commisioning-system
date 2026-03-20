@@ -17,9 +17,12 @@ struct ComponentKeyAlias {
 
 // Preserve upstream component keys so hosted/local clients keep working after renames.
 constexpr ComponentKeyAlias COMPONENT_KEY_ALIASES[] = {
+  {"feder", "spring"},
   {"mine", "refill"},
   {"shaft", "shell"},
+  {"schale", "shell"},
   {"upperShell", "shell"},
+  {"lowerShell", "shell"},
   {"spitze", "tip"},
   {"button", "plunger"},
 };
