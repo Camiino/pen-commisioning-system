@@ -2,7 +2,11 @@
 
 void initSerial() {
   Serial.begin(115200);
-  while (!Serial);  // wait for serial monitor
+  const unsigned long waitStartedAt = millis();
+  while (!Serial && millis() - waitStartedAt < 2000) {
+    delay(10);
+  }
+  delay(100);
   logInfo("Serial connection established");
 }
 
